@@ -121,8 +121,12 @@ object SbtAspectJRunner extends AutoPlugin {
       val currentThread = Thread.currentThread
       val oldLoader = Thread.currentThread.getContextClassLoader
       currentThread.setContextClassLoader(loader)
-      try { main.invoke(null, options.toArray[String]) }
-      finally { currentThread.setContextClassLoader(oldLoader) }
+      try {
+        val _ = main.invoke(null, options.toArray[String])
+      }
+      finally {
+        currentThread.setContextClassLoader(oldLoader)
+      }
     }
 
     override def getMainMethod(mainClassName: String, loader: ClassLoader) = {

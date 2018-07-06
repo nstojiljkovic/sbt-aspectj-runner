@@ -1,9 +1,9 @@
 // File contents partially copied from:
-// https://github.com/playframework/playframework/blob/2.6.11/framework/src/run-support/src/main/scala/play/runsupport/Reloader.scala
+// https://github.com/playframework/playframework/blob/2.6.15/framework/src/run-support/src/main/scala/play/runsupport/Reloader.scala
 package kamon.aspectj.sbt.play
 
 import java.io.{Closeable, File}
-import java.net.URL
+import java.net.{URL, URLClassLoader}
 import java.security.{AccessController, PrivilegedAction}
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicReference
@@ -16,7 +16,7 @@ import play.dev.filewatch.FileWatchService
 import play.runsupport.{NamedURLClassLoader, ServerStartException}
 import play.runsupport.classloader.{ApplicationClassLoaderProvider, DelegatingClassLoader}
 import play.runsupport.{AssetsClassLoader, RunHook}
-import play.runsupport.Reloader.{CompileResult, CompileSuccess, CompileFailure, Source, GeneratedSourceMapping}
+import play.runsupport.Reloader.{CompileFailure, CompileResult, CompileSuccess, GeneratedSourceMapping, Source}
 
 import scala.collection.JavaConverters._
 
@@ -63,15 +63,16 @@ object AspectJReloader {
   }
 
   def filterArgs(
-    args: Seq[String],
-    defaultHttpPort: Int,
-    defaultHttpAddress: String,
-    devSettings: Seq[(String, String)]): (Seq[(String, String)], Option[Int], Option[Int], String) = {
+                  args: Seq[String],
+                  defaultHttpPort: Int,
+                  defaultHttpAddress: String,
+                  devSettings: Seq[(String, String)]): (Seq[(String, String)], Option[Int], Option[Int], String) = {
     val (propertyArgs, otherArgs) = args.partition(_.startsWith("-D"))
 
     val properties = propertyArgs.map(_.drop(2).split('=')).map(a => a(0) -> a(1)).toSeq
 
     val props = properties.toMap
+
     def prop(key: String): Option[String] = props.get(key) orElse sys.props.get(key)
 
     def parsePortValue(portValue: Option[String], defaultValue: Option[Int] = None): Option[Int] = {
@@ -107,7 +108,7 @@ object AspectJReloader {
       case jar if jar.getName.startsWith("h2-") || jar.getName == "h2.jar" => jar.toURI.toURL
     }
 
-    new java.net.URLClassLoader(classpath.collect(commonJars).toArray, null /* important here, don't depend of the sbt classLoader! */ ) {
+    new java.net.URLClassLoader(classpath.collect(commonJars).toArray, null /* important here, don't depend of the sbt classLoader! */) {
       override def toString = "Common ClassLoader: " + getURLs.map(_.toString).mkString(",")
     }
   }
@@ -121,7 +122,7 @@ object AspectJReloader {
     /** Allows to register a listener that will be triggered a monitored file is changed. */
     def addChangeListener(f: () => Unit): Unit
 
-    /** Reloads the application.*/
+    /** Reloads the application. */
     def reload(): Unit
 
     /** URL at which the application is running (if started) */
@@ -134,15 +135,15 @@ object AspectJReloader {
     * @return A closeable that can be closed to stop the server
     */
   def startDevMode(
-    runHooks: Seq[RunHook], javaOptions: Seq[String],
-    commonClassLoader: ClassLoader, dependencyClasspath: Seq[File],
-    reloadCompile: () => CompileResult, assetsClassLoader: ClassLoader => ClassLoader,
-    monitoredFiles: Seq[File], fileWatchService: FileWatchService,
-    generatedSourceHandlers: Map[String, GeneratedSourceMapping],
-    defaultHttpPort: Int, defaultHttpAddress: String, projectPath: File,
-    devSettings: Seq[(String, String)], args: Seq[String],
-    mainClassName: String, reloadLock: AnyRef
-  ): DevServer = {
+                    runHooks: Seq[RunHook], javaOptions: Seq[String],
+                    commonClassLoader: ClassLoader, dependencyClasspath: Seq[File],
+                    reloadCompile: () => CompileResult, assetsClassLoader: ClassLoader => ClassLoader,
+                    monitoredFiles: Seq[File], fileWatchService: FileWatchService,
+                    generatedSourceHandlers: Map[String, GeneratedSourceMapping],
+                    defaultHttpPort: Int, defaultHttpAddress: String, projectPath: File,
+                    devSettings: Seq[(String, String)], args: Seq[String],
+                    mainClassName: String, reloadLock: AnyRef
+                  ): DevServer = {
 
     val (properties, httpPort, httpsPort, httpAddress) = filterArgs(args, defaultHttpPort, defaultHttpAddress, devSettings)
     val systemProperties = extractSystemProperties(javaOptions)
@@ -202,7 +203,9 @@ object AspectJReloader {
       * to the applicationLoader, creating a full circle for resource loading.
       */
     lazy val delegatingLoader: ClassLoader = new DelegatingClassLoader(commonClassLoader, Build.sharedClasses, buildLoader, new ApplicationClassLoaderProvider {
-      def get: ClassLoader = { reloader.getClassLoader.orNull }
+      def get: URLClassLoader = {
+        reloader.getClassLoader.orNull
+      }
     })
 
     lazy val applicationLoader = new NamedWeavingURLClassLoader("DependencyClassLoader", urls(dependencyClasspath), delegatingLoader)
@@ -230,8 +233,11 @@ object AspectJReloader {
 
       new DevServer {
         val buildLink = reloader
+
         def addChangeListener(f: () => Unit): Unit = reloader.addChangeListener(f)
+
         def reload(): Unit = server.reload()
+
         def close(): Unit = {
           server.stop()
           reloader.close()
@@ -244,6 +250,7 @@ object AspectJReloader {
             case (key, _) => System.clearProperty(key)
           }
         }
+
         def url(): String = server.mainAddress().getHostName + ":" + server.mainAddress().getPort
       }
     } catch {
@@ -256,8 +263,10 @@ object AspectJReloader {
             case e: Throwable => // Swallow any exceptions so that all `onError`s get called.
           }
         }
+
         // Convert play-server exceptions to our to our ServerStartException
         def getRootCause(t: Throwable): Throwable = if (t.getCause == null) t else getRootCause(t.getCause)
+
         if (getRootCause(e).getClass.getName == "play.core.server.ServerListenException") {
           throw new ServerStartException(e)
         }
@@ -269,13 +278,15 @@ object AspectJReloader {
     * Start the server without hot reloading
     */
   def startNoReload(parentClassLoader: ClassLoader, dependencyClasspath: Seq[File], buildProjectPath: File,
-    devSettings: Seq[(String, String)], httpPort: Int, mainClassName: String): DevServer = {
+                    devSettings: Seq[(String, String)], httpPort: Int, mainClassName: String): DevServer = {
     val buildLoader = this.getClass.getClassLoader
 
     lazy val delegatingLoader: ClassLoader = new DelegatingClassLoader(
       parentClassLoader,
       Build.sharedClasses, buildLoader, new ApplicationClassLoaderProvider {
-        def get: ClassLoader = { applicationLoader }
+        def get: URLClassLoader = {
+          applicationLoader
+        }
       })
 
     lazy val applicationLoader = new NamedURLClassLoader("DependencyClassLoader", urls(dependencyClasspath),
@@ -283,13 +294,18 @@ object AspectJReloader {
 
     val _buildLink = new BuildLink {
       private val initialized = new java.util.concurrent.atomic.AtomicBoolean(false)
+
       override def reload(): AnyRef = {
         if (initialized.compareAndSet(false, true)) applicationLoader
         else null // this means nothing to reload
       }
+
       override def projectPath(): File = buildProjectPath
+
       override def settings(): java.util.Map[String, String] = devSettings.toMap.asJava
+
       override def forceReload(): Unit = ()
+
       override def findSource(className: String, line: Integer): Array[AnyRef] = null
     }
 
@@ -305,7 +321,7 @@ object AspectJReloader {
       /** Allows to register a listener that will be triggered a monitored file is changed. */
       def addChangeListener(f: () => Unit): Unit = ()
 
-      /** Reloads the application.*/
+      /** Reloads the application. */
       def reload(): Unit = ()
 
       /** URL at which the application is running (if started) */
@@ -317,20 +333,18 @@ object AspectJReloader {
 
 }
 
-import kamon.aspectj.sbt.play.AspectJReloader._
-
 class AspectJReloader(
-  reloadCompile: () => CompileResult,
-  baseLoader: ClassLoader,
-  val projectPath: File,
-  devSettings: Seq[(String, String)],
-  monitoredFiles: Seq[File],
-  fileWatchService: FileWatchService,
-  generatedSourceHandlers: Map[String, GeneratedSourceMapping],
-  reloadLock: AnyRef) extends BuildLink {
+                       reloadCompile: () => CompileResult,
+                       baseLoader: ClassLoader,
+                       val projectPath: File,
+                       devSettings: Seq[(String, String)],
+                       monitoredFiles: Seq[File],
+                       fileWatchService: FileWatchService,
+                       generatedSourceHandlers: Map[String, GeneratedSourceMapping],
+                       reloadLock: AnyRef) extends BuildLink {
 
   // The current classloader for the application
-  @volatile private var currentApplicationClassLoader: Option[ClassLoader] = None
+  @volatile private var currentApplicationClassLoader: Option[URLClassLoader] = None
   // Flag to force a reload on the next request.
   // This is set if a compile error occurs, and also by the forceReload method on BuildLink, which is called for
   // example when evolutions have been applied.
@@ -357,6 +371,7 @@ class AspectJReloader(
   private val listeners = new java.util.concurrent.CopyOnWriteArrayList[() => Unit]()
 
   private val quietPeriodMs: Long = 200L
+
   private def onChange(): Unit = {
     val now = Instant.now()
     fileLastChanged.set(now)
@@ -375,14 +390,15 @@ class AspectJReloader(
     }
   }
 
-  def addChangeListener(f: () => Unit): Unit = listeners.add(f)
+  def addChangeListener(f: () => Unit): Unit = {
+    val _ = listeners.add(f)
+  }
 
   /**
     * Contrary to its name, this doesn't necessarily reload the app.  It is invoked on every request, and will only
     * trigger a reload of the app if something has changed.
     *
     * Since this communicates across classloaders, it must return only simple objects.
-    *
     *
     * @return Either
     * - Throwable - If something went wrong (eg, a compile error).
@@ -443,7 +459,7 @@ class AspectJReloader(
     devSettings.toMap.asJava
   }
 
-  def forceReload() {
+  def forceReload(): Unit = {
     forceReloadNextTime = true
   }
 

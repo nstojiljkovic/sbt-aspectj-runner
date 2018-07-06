@@ -14,45 +14,119 @@
  * =========================================================================================
  */
 
+import ReleaseTransformations._
 import sbt._
 import sbt.Keys._
+import sbt.Resolver.mavenLocal
+import sbtrelease.ReleasePlugin
 
 def crossSbtDependency(module: ModuleID, sbtVersion: String, scalaVersion: String): ModuleID = {
   Defaults.sbtPluginExtra(module, sbtVersion, scalaVersion)
 }
 
-val aspectjTools = "org.aspectj" % "aspectjtools" % "1.8.13"
-val playSbtPluginFor26 = "com.typesafe.play" % "sbt-plugin" % "2.6.11"
+val aspectjTools = "org.aspectj" % "aspectjtools" % "1.9.1"
+val playSbtPluginFor26 = "com.typesafe.play" % "sbt-plugin" % "2.6.15"
 
+lazy val commonSettings = ReleasePlugin.extraReleaseCommands ++ Seq(
+  organization := "com.github.nstojiljkovic",
+  scalaVersion := "2.12.6",
+  crossScalaVersions := Seq("2.12.6"),
+  scalacOptions ++= Seq(
+    "-deprecation",
+    "-encoding", "UTF-8",
+    "-feature",
+    "-unchecked",
+    "-Yno-adapted-args",
+    "-Ywarn-dead-code",
+    "-Ywarn-numeric-widen",
+    "-Ywarn-value-discard",
+    "-Xfuture"
+  ),
+  scalacOptions ++= {
+    CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((2, 12)) => Seq("-Xlint:-unused,_", "-Ywarn-unused:imports")
+      case _ => Seq()
+    }
+  },
+  resolvers ++= Seq(
+    mavenLocal,
+    "Restlet Repository" at "http://maven.restlet.org/",
+    "JBoss Repository" at "https://repository.jboss.org/nexus/content/repositories/",
+    "Sonatype Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/",
+    "Scala-Tools Snapshots" at "http://scala-tools.org/repo-snapshots/"
+  ),
+  concurrentRestrictions in Global += Tags.limit(Tags.Test, 1),
+  releasePublishArtifactsAction := PgpKeys.publishSigned.value,
+  publishMavenStyle := true,
+  publishTo := {
+    val nexus = "https://oss.sonatype.org/"
+    if (isSnapshot.value)
+      Some("snapshots" at nexus + "content/repositories/snapshots")
+    else
+      Some("releases"  at nexus + "service/local/staging/deploy/maven2")
+  },
 
-lazy val sbtAspectjRunner = Project("root", file("."))
-  .aggregate(aspectjRunner, aspectjRunnerPlay26)
-  .settings(noPublishing: _*)
+  releaseProcess := Seq[ReleaseStep](
+    checkSnapshotDependencies,
+    inquireVersions,
+    runClean,
+    setReleaseVersion,
+    commitReleaseVersion,
+    tagRelease,
+    releaseStepCommand("publishSigned"),
+    setNextVersion,
+    commitNextVersion,
+    releaseStepCommand("sonatypeReleaseAll"),
+    pushChanges
+  ),
+  pomExtra := (
+    <url>https://github.com/nstojiljkovic/sbt-aspectj-runner</url>
+      <licenses>
+        <license>
+          <name>Apache License 2.0</name>
+          <url>https://raw.githubusercontent.com/nstojiljkovic/sbt-aspectj-runner/master/LICENSE</url>
+          <distribution>repo</distribution>
+        </license>
+      </licenses>
+      <scm>
+        <url>git@github.com:nstojiljkovic/sbt-aspectj-runner.git</url>
+        <connection>scm:git@github.com:nstojiljkovic/sbt-aspectj-runner.git</connection>
+      </scm>
+      <developers>
+        <developer>
+          <id>nstojiljkovic</id>
+          <name>Nikola Stojiljković</name>
+          <url>https://github.com/nstojiljkovic</url>
+        </developer>
+      </developers>)
+)
+
+lazy val root = (project in file("."))
+  .settings(commonSettings: _*)
   .settings(
-    crossSbtVersions := Seq("0.13.17", "1.0.4")
+    publishArtifact := false,
+    crossSbtVersions := Seq("1.1.4")
   )
+  .aggregate(aspectjRunner, aspectjRunnerPlay26)
 
 lazy val aspectjRunner = Project("sbt-aspectj-runner", file("sbt-aspectj-runner"))
+  .settings(commonSettings: _*)
   .settings(
     sbtPlugin := true,
-    crossSbtVersions := Seq("0.13.17", "1.0.4"),
+    crossSbtVersions := Seq("1.1.4"),
     libraryDependencies ++= Seq(aspectjTools)
   )
 
 
 lazy val aspectjRunnerPlay26 = Project("sbt-aspectj-runner-play-26", file("sbt-aspectj-runner-play-2.6"))
-  .dependsOn(aspectjRunner)
+  .settings(commonSettings: _*)
   .settings(
     sbtPlugin := true,
-    crossSbtVersions := Seq("0.13.17", "1.0.4"),
+    crossSbtVersions := Seq("1.1.4"),
     moduleName := "sbt-aspectj-runner-play-2.6",
     libraryDependencies ++= Seq(
       aspectjTools,
       crossSbtDependency(playSbtPluginFor26, (sbtBinaryVersion in pluginCrossBuild).value, scalaBinaryVersion.value)
     )
   )
-
-//workaround for https://github.com/sbt/sbt/issues/3749
-scalaVersion in ThisBuild := {
-  if((sbtBinaryVersion in pluginCrossBuild).value.startsWith("0.")) "2.10.7" else "2.12.4"
-}
+  .dependsOn(aspectjRunner)
