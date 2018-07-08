@@ -35,7 +35,7 @@ object SbtAspectJRunnerPlay extends AutoPlugin {
     Keys.run in Compile := AspectJPlayRun.playWithAspectJRunTask.evaluated,
     playRunHooks += runningWithAspectJNoticeHook.value,
     javaOptions in Runtime += "-Dorg.aspectj.tracing.factory=default",
-    libraryDependencies += "org.aspectj" % "aspectjtools" % "1.8.13"
+    libraryDependencies += "org.aspectj" % "aspectjtools" % "1.9.1"
   )
 
   def runningWithAspectJNoticeHook: Def.Initialize[Task[RunningWithAspectJNotice]] = Def.task {
