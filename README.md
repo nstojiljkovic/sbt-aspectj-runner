@@ -20,7 +20,7 @@ that hitting `run` will just work, regardless your project type or whether you a
 Add the `sbt-aspectj-runner` plugin to your `project/plugins.sbt` file using the code bellow:
 
 ```scala
-addSbtPlugin("com.github.nstojiljkovic" % "sbt-aspectj-runner" % "1.2.0")
+addSbtPlugin("com.github.nstojiljkovic" % "sbt-aspectj-runner" % "1.2.1")
 ```
 
 ### Running
@@ -40,14 +40,14 @@ Here is what the plugin will do depending on your `fork` settings:
 For Play Framework 2.6 projects add the `sbt-aspectj-runner-play-2.6` to your `project/plugins.sbt` file:
 
 ```scala
-addSbtPlugin("com.github.nstojiljkovic" % "sbt-aspectj-runner-play-2.6" % "1.2.0")
+addSbtPlugin("com.github.nstojiljkovic" % "sbt-aspectj-runner-play-2.6" % "1.2.1")
 
 ```
 
 For Play 2.4 and 2.5 you can use the older `sbt-aspectj-play-runner` plugin:
 
 ```scala
-addSbtPlugin("com.github.nstojiljkovic" % "sbt-aspectj-play-runner" % "1.2.0")
+addSbtPlugin("com.github.nstojiljkovic" % "sbt-aspectj-play-runner" % "1.2.1")
 
 ```
 
