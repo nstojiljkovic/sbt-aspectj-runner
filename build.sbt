@@ -24,13 +24,13 @@ def crossSbtDependency(module: ModuleID, sbtVersion: String, scalaVersion: Strin
   Defaults.sbtPluginExtra(module, sbtVersion, scalaVersion)
 }
 
-val aspectjTools = "org.aspectj" % "aspectjtools" % "1.9.1"
-val playSbtPluginFor26 = "com.typesafe.play" % "sbt-plugin" % "2.6.15"
+val aspectjTools = "org.aspectj" % "aspectjtools" % "1.9.2"
+val playSbtPluginFor26 = "com.typesafe.play" % "sbt-plugin" % "2.6.20"
 
 lazy val commonSettings = ReleasePlugin.extraReleaseCommands ++ Seq(
   organization := "com.github.nstojiljkovic",
-  scalaVersion := "2.12.6",
-  crossScalaVersions := Seq("2.12.6"),
+  scalaVersion := "2.12.7",
+  crossScalaVersions := Seq("2.12.7"),
   scalacOptions ++= Seq(
     "-deprecation",
     "-encoding", "UTF-8",
@@ -105,7 +105,7 @@ lazy val root = (project in file("."))
   .settings(commonSettings: _*)
   .settings(
     publishArtifact := false,
-    crossSbtVersions := Seq("1.1.4")
+    crossSbtVersions := Seq("1.2.6")
   )
   .aggregate(aspectjRunner, aspectjRunnerPlay26)
 
@@ -113,7 +113,7 @@ lazy val aspectjRunner = Project("sbt-aspectj-runner", file("sbt-aspectj-runner"
   .settings(commonSettings: _*)
   .settings(
     sbtPlugin := true,
-    crossSbtVersions := Seq("1.1.4"),
+    crossSbtVersions := Seq("1.2.6"),
     libraryDependencies ++= Seq(aspectjTools)
   )
 
@@ -122,7 +122,7 @@ lazy val aspectjRunnerPlay26 = Project("sbt-aspectj-runner-play-26", file("sbt-a
   .settings(commonSettings: _*)
   .settings(
     sbtPlugin := true,
-    crossSbtVersions := Seq("1.1.4"),
+    crossSbtVersions := Seq("1.2.6"),
     moduleName := "sbt-aspectj-runner-play-2.6",
     libraryDependencies ++= Seq(
       aspectjTools,

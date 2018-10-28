@@ -51,7 +51,7 @@ addSbtPlugin("com.github.nstojiljkovic" % "sbt-aspectj-play-runner" % "1.2.1")
 
 ```
 
-This plugin has been tested with **Play 2.4.8**, **Play 2.5.10** and **Play 2.6.15**.
+This plugin has been tested with **Play 2.4.8**, **Play 2.5.10** and **Play 2.6.20**.
 
 ### Running
 

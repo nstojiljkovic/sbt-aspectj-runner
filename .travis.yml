@@ -2,7 +2,7 @@ language: scala
 script:
   - sbt ^compile ^publish-local
 scala:
-   - 2.12.6
+   - 2.12.7
 jdk:
    - oraclejdk8
 sudo: false

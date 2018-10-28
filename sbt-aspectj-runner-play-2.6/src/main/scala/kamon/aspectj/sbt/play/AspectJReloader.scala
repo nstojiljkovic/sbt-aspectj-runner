@@ -1,5 +1,5 @@
 // File contents partially copied from:
-// https://github.com/playframework/playframework/blob/2.6.15/framework/src/run-support/src/main/scala/play/runsupport/Reloader.scala
+// https://github.com/playframework/playframework/blob/2.6.20/framework/src/run-support/src/main/scala/play/runsupport/Reloader.scala
 package kamon.aspectj.sbt.play
 
 import java.io.{Closeable, File}

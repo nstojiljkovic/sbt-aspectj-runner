@@ -25,7 +25,7 @@ import Keys._
 object SbtAspectJRunner extends AutoPlugin {
 
   val AspectJRunner = config("aspectj-runner")
-  val DefaultAspectJVersion = "1.9.1"
+  val DefaultAspectJVersion = "1.9.2"
 
   object Keys {
     val aspectjVersion = SettingKey[String]("aspectj-version")
