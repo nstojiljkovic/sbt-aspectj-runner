@@ -20,7 +20,7 @@ that hitting `run` will just work, regardless your project type or whether you a
 Add the `sbt-aspectj-runner` plugin to your `project/plugins.sbt` file using the code bellow:
 
 ```scala
-addSbtPlugin("com.github.nstojiljkovic" % "sbt-aspectj-runner" % "1.2.1")
+addSbtPlugin("com.github.nstojiljkovic" % "sbt-aspectj-runner" % "1.2.3")
 ```
 
 ### Running
@@ -37,21 +37,28 @@ Here is what the plugin will do depending on your `fork` settings:
 
 ### Configuring
 
+For Play Framework 2.7 projects add the `sbt-aspectj-runner-play-2.7` to your `project/plugins.sbt` file:
+
+```scala
+addSbtPlugin("com.github.nstojiljkovic" % "sbt-aspectj-runner-play-2.7" % "1.2.3")
+
+```
+
 For Play Framework 2.6 projects add the `sbt-aspectj-runner-play-2.6` to your `project/plugins.sbt` file:
 
 ```scala
-addSbtPlugin("com.github.nstojiljkovic" % "sbt-aspectj-runner-play-2.6" % "1.2.1")
+addSbtPlugin("com.github.nstojiljkovic" % "sbt-aspectj-runner-play-2.6" % "1.2.3")
 
 ```
 
 For Play 2.4 and 2.5 you can use the older `sbt-aspectj-play-runner` plugin:
 
 ```scala
-addSbtPlugin("com.github.nstojiljkovic" % "sbt-aspectj-play-runner" % "1.2.1")
+addSbtPlugin("com.github.nstojiljkovic" % "sbt-aspectj-play-runner" % "1.2.3")
 
 ```
 
-This plugin has been tested with **Play 2.4.8**, **Play 2.5.10** and **Play 2.6.20**.
+This plugin has been tested with **Play 2.4.8**, **Play 2.5.10**, **Play 2.6.23** and **Play 2.7.3**.
 
 ### Running
 
